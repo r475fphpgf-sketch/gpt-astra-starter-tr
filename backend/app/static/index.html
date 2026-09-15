@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GPT-Astra Demo (Türkçe)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; padding:0; background:#f7fafc; }
+    .app { max-width:800px; margin:0 auto; padding:16px; }
+    header { text-align:center; padding:8px 0; }
+    #chat { height:60vh; overflow:auto; background:#fff; border-radius:8px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .msg { margin:8px 0; }
+    .user { text-align:right; }
+    .bot { text-align:left; }
+    .bubble { display:inline-block; padding:10px 14px; border-radius:18px; max-width:80%; }
+    .user .bubble { background:#0ea5a4; color:#fff; }
+    .bot .bubble { background:#e6e6e6; color:#111; }
+    footer { display:flex; gap:8px; margin-top:8px; }
+    input[type=text] { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #ddd; }
+    button { padding:10px 14px; border-radius:8px; border:none; background:#2563eb; color:#fff; }
+    .sources { font-size:12px; color:#555; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h2>GPT-Astra Demo (Türkçe)</h2>
+      <p>Basit MVP. API anahtarını .env içine ekleyerek OpenAI ile çalıştırın.</p>
+    </header>
+    <div id="chat"></div>
+    <footer>
+      <input id="msg" type="text" placeholder="Soru/komut yaz... (örn. vergi, ilaç tavsiyesi, sözleşme)" />
+      <button id="send">Gönder</button>
+    </footer>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('msg');
+    const sendBtn = document.getElementById('send');
+
+    function addMessage(text, who='bot'){
+      const div = document.createElement('div');
+      div.className = 'msg ' + (who==='user' ? 'user' : 'bot');
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    sendBtn.onclick = async ()=>{
+      const v = input.value.trim();
+      if(!v) return;
+      addMessage(v, 'user');
+      input.value = '';
+      addMessage('Yanıt hazırlanıyor...', 'bot');
+      try{
+        const res = await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: v})});
+        const data = await res.json();
+        // remove 'Yanıt hazırlanıyor...'
+        chat.removeChild(chat.lastChild);
+        addMessage(data.answer, 'bot');
+        if(data.sources && data.sources.length){
+          const s = document.createElement('div'); s.className='sources'; s.textContent = 'Kaynaklar: ' + data.sources.join(' | ');
+          chat.appendChild(s);
+        }
+      }catch(err){
+        chat.removeChild(chat.lastChild);
+        addMessage('Hata: ' + err.message, 'bot');
+      }
+    }
+
+    input.addEventListener('keyup', function(e){ if(e.key === 'Enter') sendBtn.click(); });
+  </script>
+</body>
+</html>
